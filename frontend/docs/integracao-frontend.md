@@ -2,10 +2,10 @@
 
 ## Estado encontrado
 
-- Este repositório contém React, TypeScript, Vite e React Router, mas não contém `composer.json`, `routes/api.php`, controllers ou outros arquivos Laravel.
+- O repositório contém o frontend React/TypeScript e um esqueleto Laravel em `backend/`. A única rota de API encontrada é `GET /api/user`, protegida por `auth:sanctum`; não há rotas de login/logout, dashboard, atividades, turmas, materiais ou geração por IA, nem controllers de domínio ou serviços relacionados.
 - A busca também não encontrou arquivo Mermaid (`.mmd` ou `.mermaid`) no repositório. Portanto, não foi possível validar a navegação contra o fluxo oficial. Até o diagrama ser adicionado, as rotas e os modelos descritos no `README.md` são a referência disponível.
 - O frontend inclui `demoApi` para persistência local em `localStorage`/IndexedDB. No uso normal ela começa vazia, não autentica contas reais, não chama IA nem grava no backend. A chave local de dados antigos não é apagada; o modo atual usa uma chave separada.
-- Os modelos existentes são `Teacher`, `Assessment`, `Question`, `Material`, `Application`, `Attempt` e `Answer`. Não há entidade, serviço ou rota de turma/classe. A publicação existente cria aplicações a partir de avaliações e não oferece seleção de turmas.
+- Os modelos de domínio disponíveis no frontend são `Teacher`, `Assessment`, `Question`, `Material`, `Application`, `Attempt` e `Answer`. O esqueleto Laravel ainda não contém essas entidades; não há serviço ou rota de turma/classe. A publicação existente no modo local cria aplicações a partir de avaliações e não oferece seleção de turmas.
 
 ## Seleção do modo
 
@@ -13,7 +13,7 @@ O modo padrão é `api`; qualquer valor diferente de `demo` também seleciona o 
 
 No modo `demo`, o acesso ao painel é local e os dados começam vazios. Salvamento de atividades, materiais, aplicações e participações grava somente no dispositivo. A geração por prompt/PDF, cadastro, recuperação de acesso, verificação por e-mail e integração com aplicativo ficam indisponíveis. O PDF selecionado não é armazenado nem processado.
 
-`VITE_LOUSA_TEST_TOOLS=true` é definido exclusivamente pelo `playwright.config.ts`. Nesse processo automatizado, o banco de fixtures e os controles de cenário são carregados para cobrir fluxos que ainda não têm backend. Não configure essa variável em builds públicos.
+`VITE_LOUSA_TEST_TOOLS=true` é definido exclusivamente pelo `playwright.config.ts`. Nesse processo automatizado, o banco de fixtures e os controles de cenário são carregados para cobrir fluxos sem contrato de API. Não configure essa variável em builds públicos.
 
 No modo `api`, não há fallback para dados locais. Cada operação integrada exige um caminho confirmado e configurado. Áreas sem integração mostram uma mensagem neutra de indisponibilidade. A área do professor não é liberada por um perfil salvo no navegador: a sessão é consultada pelo serviço de autenticação e o papel retornado precisa ser `teacher` ou `professor`.
 
@@ -32,7 +32,7 @@ Nenhum dos caminhos abaixo é uma rota Laravel observada no repositório. São v
 | Gerar por material | `VITE_LOUSA_API_GENERATE_MATERIAL_PATH` | `POST multipart/form-data` com `material`, `subject`, `questionCount` | `{ data: { activity } }`; o limite atual de 25 MB é provisório e deve ser alinhado ao Laravel. |
 | Listar materiais | `VITE_LOUSA_API_MATERIALS_PATH` | `GET` | Lista compatível com `Material`; é opcional para criar atividade. |
 
-As requisições de API incluem `credentials: "include"`, usando sessão por cookie como contrato provisório. Se Laravel exigir CSRF, configure `VITE_LOUSA_API_CSRF_PATH` e confirme o nome/formato do cookie e cabeçalho. Não foi possível verificar o guard, Sanctum, cookies, CSRF, estrutura de recursos, limites de upload, papel de usuário, nem payloads reais porque o backend não está neste checkout.
+As requisições de API incluem `credentials: "include"`, usando sessão por cookie como contrato provisório. O esqueleto Laravel protege `GET /api/user` com `auth:sanctum`, mas não define o fluxo de login/logout do frontend nem confirma middleware stateful, cookies ou CSRF. Também faltam estrutura de recursos de domínio, limites de upload, papel de usuário e payloads reais.
 
 Rotas de duplicação/arquivamento, publicação/aplicações, classes/turmas, resultados e correção ainda não foram integradas no modo API. A duplicação e o arquivamento retornam erro explícito no serviço; áreas sem contrato são bloqueadas para não apresentar dados locais como dados do servidor.
 
