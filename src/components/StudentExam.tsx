@@ -5,7 +5,6 @@ import {
   Check,
   ClipboardCheck,
   Clock3,
-  CloudCheck,
   CloudOff,
   LoaderCircle,
   Save,
@@ -14,6 +13,7 @@ import { formatPoints } from "../services/format";
 import type { Material, PublicApplication, PublicAttempt } from "../types";
 import PublicMaterials from "./PublicMaterials";
 import { ErrorNotice } from "./Feedback";
+import { isTestToolsEnabled } from "../services/teacherGateway";
 
 interface StudentExamProps {
   application: PublicApplication;
@@ -55,15 +55,22 @@ export default function StudentExam({
   const minutes = Math.floor(remainingSeconds / 60);
   const seconds = remainingSeconds % 60;
   const time = `${String(minutes).padStart(2, "0")}:${String(seconds).padStart(2, "0")}`;
-  const saveLabels = {
-    saved: "Salvo localmente · sincronização simulada concluída",
-    local: "Salvo neste navegador · aguardando sincronização simulada",
-    saving: "Salvo localmente · sincronizando na demonstração…",
-    error: "Verifique o salvamento das respostas",
-  };
+  const saveLabels = isTestToolsEnabled
+    ? {
+        saved: "Salvo localmente · sincronização simulada concluída",
+        local: "Salvo neste navegador · aguardando sincronização simulada",
+        saving: "Salvo localmente · sincronizando na demonstração…",
+        error: "Verifique o salvamento das respostas",
+      }
+    : {
+        saved: "Respostas salvas neste dispositivo",
+        local: "Alterações salvas neste dispositivo",
+        saving: "Salvando neste dispositivo…",
+        error: "Verifique o salvamento das respostas",
+      };
   const SaveIcon =
     saveState === "saved"
-      ? CloudCheck
+      ? Check
       : saveState === "saving"
         ? LoaderCircle
         : saveState === "error"
@@ -101,7 +108,7 @@ export default function StudentExam({
             onClick={onSync}
             disabled={busy}
           >
-            Tentar sincronizar
+            {isTestToolsEnabled ? "Tentar sincronizar" : "Tentar salvar novamente"}
           </button>
         )}
       </div>
@@ -223,7 +230,10 @@ export default function StudentExam({
                     {questions.length - answered === 1
                       ? "questão está em branco"
                       : "questões estão em branco"}
-                    . Você poderá entregar mesmo assim, após confirmar.
+                    .{" "}
+                    {isTestToolsEnabled
+                      ? "Você poderá entregar mesmo assim, após confirmar."
+                      : "Você poderá encerrar e salvar as respostas neste dispositivo."}
                   </div>
                 )}
                 <div className="exam-question-footer">
@@ -234,7 +244,8 @@ export default function StudentExam({
                     <ArrowLeft size={16} /> Voltar às questões
                   </button>
                   <button className="button primary" onClick={onDeliver}>
-                    <Check size={16} /> Entregar atividade
+                    <Check size={16} />
+                    {isTestToolsEnabled ? "Entregar atividade" : "Encerrar atividade"}
                   </button>
                 </div>
               </>

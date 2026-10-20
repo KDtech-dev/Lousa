@@ -4,17 +4,12 @@ import {
   Mail,
   BookOpen,
   Building2,
-  ShieldCheck,
-  CheckCircle2,
-  Leaf,
-  FlaskConical,
   LoaderCircle,
-  LockKeyhole,
-  Monitor,
-  CalendarDays,
+  CircleHelp,
   Pencil,
 } from "lucide-react";
 import { getTeacher, updateTeacher } from "../services/demoApi";
+import { isDemoMode, isTestToolsEnabled } from "../services/teacherGateway";
 import type { Teacher } from "../types";
 import { errorMessage } from "./managementUtils";
 import { useUnsavedChanges } from "../services/useUnsavedChanges";
@@ -99,7 +94,13 @@ export default function AccountPage() {
         new CustomEvent("lousa:teacher-updated", { detail: updated }),
       );
       setEditing(false);
-      setSuccess("Perfil demonstrativo salvo neste navegador.");
+      setSuccess(
+        isTestToolsEnabled
+          ? "Perfil demonstrativo salvo neste navegador."
+          : isDemoMode
+            ? "Perfil atualizado neste dispositivo."
+            : "Perfil atualizado.",
+      );
     } catch (cause) {
       setSaveError(errorMessage(cause));
     } finally {
@@ -118,7 +119,7 @@ export default function AccountPage() {
           <p className="eyebrow">SEU ESPAÇO DE ENSINO</p>
           <h1>Conta</h1>
           <p className="muted">
-            Seu perfil e os detalhes do ambiente de demonstração.
+            Atualize suas informações de perfil.
           </p>
         </div>
       </div>
@@ -143,7 +144,6 @@ export default function AccountPage() {
             <section className="card mg-profile-card">
               <div className="mg-card-heading">
                 <h2>Perfil do professor</h2>
-                <span className="badge gray">Dados fictícios</span>
               </div>
               {success && (
                 <p className="notice success" role="status">
@@ -157,8 +157,9 @@ export default function AccountPage() {
                   noValidate
                 >
                   <p id="profile-demo-help" className="muted">
-                    Personalize o perfil com dados fictícios. As mudanças ficam
-                    neste navegador.
+                    {isTestToolsEnabled
+                      ? "Personalize o perfil local. As alterações ficam neste dispositivo."
+                      : "As alterações ficam disponíveis neste dispositivo."}
                   </p>
                   {profileFields.map((field) => (
                     <label
@@ -241,7 +242,9 @@ export default function AccountPage() {
                         .toUpperCase()}
                     </span>
                     <h3>{teacher.name}</h3>
-                    <p className="muted">Professor · {teacher.subject}</p>
+                    <p className="muted">
+                      {teacher.subject || "Perfil do professor"}
+                    </p>
                   </div>
                   <dl className="mg-profile-fields">
                     <div>
@@ -256,27 +259,23 @@ export default function AccountPage() {
                         <Mail size={17} />
                         E-mail
                       </dt>
-                      <dd>{teacher.email}</dd>
+                      <dd>{teacher.email || "Não informado"}</dd>
                     </div>
                     <div>
                       <dt>
                         <BookOpen size={17} />
                         Disciplina
                       </dt>
-                      <dd>{teacher.subject}</dd>
+                      <dd>{teacher.subject || "Não informado"}</dd>
                     </div>
                     <div>
                       <dt>
                         <Building2 size={17} />
                         Instituição
                       </dt>
-                      <dd>{teacher.institution}</dd>
+                      <dd>{teacher.institution || "Não informado"}</dd>
                     </div>
                   </dl>
-                  <p className="mg-profile-note">
-                    <FlaskConical size={15} />
-                    Este perfil faz parte dos dados de exemplo da plataforma.
-                  </p>
                   <button
                     className="button secondary mg-profile-edit-button"
                     onClick={editProfile}
@@ -289,71 +288,18 @@ export default function AccountPage() {
             <div className="mg-account-right">
               <section className="card mg-subscription-card">
                 <div className="mg-card-heading">
-                  <h2>Assinatura</h2>
-                  <span className="badge green">Demonstrativa</span>
+                  <h2>Plano e assinatura</h2>
                 </div>
                 <div className="mg-subscription-header">
                   <span className="mg-subscription-icon">
-                    <Leaf size={26} />
+                    <CircleHelp size={26} />
                   </span>
                   <div>
-                    <h3>Espaço do professor</h3>
+                    <h3>Informações indisponíveis</h3>
                     <p className="muted">
-                      Recursos disponíveis para explorar a plataforma.
+                      Não há informações de plano vinculadas a esta conta.
                     </p>
                   </div>
-                </div>
-                <ul className="mg-feature-list">
-                  <li>
-                    <CheckCircle2 size={17} />
-                    Criação e organização de avaliações
-                  </li>
-                  <li>
-                    <CheckCircle2 size={17} />
-                    Compartilhamento de materiais e aplicações
-                  </li>
-                  <li>
-                    <CheckCircle2 size={17} />
-                    Correção de respostas e feedback individual
-                  </li>
-                  <li>
-                    <CheckCircle2 size={17} />
-                    Controle de acesso por nome ou e-mail
-                  </li>
-                </ul>
-                <div className="mg-subscription-info">
-                  <CalendarDays size={18} />
-                  <p>
-                    <strong>Sem cobranças nesta demonstração</strong>
-                    <span>
-                      O estado da assinatura é fictício. Contratação e gestão de
-                      pagamentos serão integradas em uma etapa futura.
-                    </span>
-                  </p>
-                </div>
-              </section>
-              <section className="card mg-demo-info-card">
-                <h2>
-                  <ShieldCheck size={20} />
-                  Sobre este ambiente
-                </h2>
-                <p>
-                  Os dados são salvos neste navegador. Você pode percorrer os
-                  fluxos do professor e do aluno com serviços simulados.
-                </p>
-                <div className="mg-demo-info-item">
-                  <LockKeyhole size={17} />
-                  <span>
-                    A identificação, as permissões e os prazos serão validados
-                    pelo backend na versão de produção.
-                  </span>
-                </div>
-                <div className="mg-demo-info-item">
-                  <Monitor size={17} />
-                  <span>
-                    A integração com o aplicativo é uma simulação. Windows 11 e
-                    Linux Mint são os sistemas previstos para uma etapa futura.
-                  </span>
                 </div>
               </section>
             </div>

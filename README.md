@@ -1,6 +1,6 @@
 # Lousa
 
-Front-end demonstrativo de uma plataforma de atividades e avaliações voltada ao professor. A interface está em português do Brasil e permite percorrer a criação da avaliação, publicação de uma aplicação, participação do aluno, correção e liberação do resultado.
+Frontend da plataforma Lousa para criação e acompanhamento de atividades e avaliações. A interface está em português do Brasil e reúne os espaços do professor e do aluno.
 
 ## Instalação e execução
 
@@ -17,6 +17,8 @@ Abra o endereço local indicado pelo Vite. Para gerar e visualizar a versão com
 npm run build
 npm run preview
 ```
+
+O projeto inicia em modo API. Como este checkout não contém o backend Laravel, copie `.env.example` para `.env.local` e defina `VITE_LOUSA_MODE=demo` para trabalhar com persistência local. Esse acesso não autentica contas; as alterações ficam restritas ao dispositivo. Não há conteúdo inicial no uso normal.
 
 Verificações disponíveis:
 
@@ -40,35 +42,23 @@ A configuração verifica Chromium, Firefox e WebKit e inicia o servidor de dese
 npx playwright test tests/browser/student.spec.ts --project=chromium --workers=1
 ```
 
-## Acesso à demonstração
+## Acesso e integração
 
-O painel do professor começa em `/login`. Use `marina@exemplo.com`, já preenchido, ou outro e-mail fictício válido. A entrada abre o perfil fictício de Marina Costa, professora de Biologia da Escola Horizonte. O login não exige senha e não usa credenciais reais, autenticação de produção, checkout ou cobrança.
+O painel do professor começa em `/login`. No modo API, o acesso exige e-mail, senha e confirmação do perfil de professor pelo serviço de autenticação. Nenhum perfil salvo no navegador concede autorização. Os caminhos provisórios permanecem vazios até a equipe confirmar os contratos; veja [docs/integracao-frontend.md](docs/integracao-frontend.md).
 
-Em `/cadastro`, é possível configurar o perfil do professor com dados fictícios e testar os campos de senha e confirmação. As senhas são validadas somente na tela, descartadas ao entrar e nunca armazenadas. O cadastro atualiza o único perfil local da demonstração; não cria contas independentes. `/recuperar-acesso` simula a solicitação e apresenta a confirmação, sem enviar e-mail, armazenar o endereço informado ou alterar senhas. A confirmação permite experimentar os campos de redefinição e validar uma nova senha fictícia, que também é descartada ao concluir. Em Conta, o perfil pode ser editado, com validação, persistência local e atualização do nome no cabeçalho.
+No modo local (`VITE_LOUSA_MODE=demo`), o painel pode ser acessado sem conta para trabalhar com dados criados no próprio dispositivo. Esse acesso não é autenticação e não substitui uma sessão real. Atividades, materiais, aplicações e respostas locais não são compartilhados entre dispositivos. A geração por prompt/PDF, o cadastro de contas, a recuperação de senha, a verificação por e-mail e a integração com aplicativo permanecem indisponíveis fora do ambiente automatizado de testes.
 
-O aluno acessa `/participar`, informa um código ou abre diretamente `/p/:codigo`. As rotas públicas apresentam somente o fluxo da atividade, sem o menu do professor. O login demonstrativo é um marcador local para a navegação do painel; ele não oferece autorização de segurança.
-
-| Código   | Atividade                   | Cenário inicial                                                              |
-| -------- | --------------------------- | ---------------------------------------------------------------------------- |
-| `BIO101` | Ecologia e sustentabilidade | Aberta, identificação por nome, 45 minutos                                   |
-| `MAT202` | Funções do primeiro grau    | Aberta, e-mail autorizado, 50 minutos                                        |
-| `FIS303` | Movimento e velocidade      | Aberta, identificação por nome e aplicativo simulado obrigatório, 60 minutos |
-| `GEO404` | Paisagens e território      | Abertura futura, dois dias após a inicialização dos exemplos                 |
-| `HIS505` | Memórias da comunidade      | Aplicação encerrada                                                          |
-
-Na aplicação `MAT202`, estão autorizados `aluno@exemplo.com` e `beatriz@exemplo.com`. O código de verificação é exibido na interface, identifica expressamente uma demonstração e expira em dez minutos. Nenhum e-mail é enviado. Depois da verificação, o token local só permite iniciar uma participação na aplicação e com o e-mail correspondentes; ele é consumido ao iniciar.
-
-As datas de exemplo são calculadas quando os dados são criados pela primeira vez naquele navegador. Depois disso, os períodos persistidos continuam avançando normalmente. Para recomeçar os exemplos, use um perfil novo do navegador ou limpe os dados deste site, incluindo localStorage e IndexedDB. Isso apaga avaliações, materiais, participações e correções locais.
+Os dados iniciais e os controles de cenário são habilitados somente pelo Playwright durante os testes de navegador (`VITE_LOUSA_TEST_TOOLS`). Eles não fazem parte do modo local usado no desenvolvimento normal nem do build padrão. O serviço de dados e as fixtures continuam separados para preservar a cobertura automatizada sem apresentar conteúdo inicial como dado de usuário.
 
 ## Funcionalidades
 
-- **Visão geral:** indicadores derivados dos exemplos, aplicações recentes, próximas atividades e respostas aguardando correção.
+- **Visão geral:** indicadores e listas derivados dos dados disponíveis.
 - **Avaliações:** pesquisa, filtros, criação, edição, duplicação, arquivamento e associação de materiais. O editor permite adicionar, remover e reordenar questões de alternativa única, verdadeiro ou falso e resposta aberta, com pontuação e prévia para o aluno.
 - **Materiais:** cadastro e consulta de links e arquivos locais. Os arquivos ficam no navegador, com visualização quando o formato permite; não são apresentados como enviados a um servidor.
-- **Aplicações:** validação de período, duração, lista de e-mails e ambiente; geração de código e link, cópia do link e encerramento.
+- **Aplicações:** validação de período e duração; no modo local, geração de código e link restritos ao dispositivo atual.
 - **Resultados:** participações com identificador próprio, respostas, correção das questões abertas, feedback e controle de liberação. Questões objetivas são pontuadas automaticamente. Questões abertas sem resposta valem zero. Desistências preservam as respostas salvas para consulta, sem correção ou liberação de nota.
-- **Conta:** edição do perfil fictício e estado demonstrativo da assinatura, com proteção das alterações pendentes ao sair.
-- **Aluno:** acesso, identificação, instruções e materiais, preparação do ambiente, navegação pelas questões, rascunho local, sincronização simulada, revisão, entrega ou desistência e confirmação. Nota e feedback aparecem somente após a liberação pelo professor.
+- **Conta:** edição do perfil, com proteção das alterações pendentes ao sair. Informações de assinatura aparecem como indisponíveis enquanto não houver integração.
+- **Aluno:** identificação, instruções, materiais, navegação pelas questões, salvamento local, revisão e encerramento. Resultados e feedback dependem da liberação pelo professor.
 
 ## Estrutura
 
@@ -78,7 +68,7 @@ src/
   pages/            Páginas do professor e acesso público do aluno
   styles/           Estilos compartilhados e por área/componente
   types/            Modelos de domínio e tipos públicos
-  data/seed.ts      Dados fictícios com calendário relativo
+  data/seed.ts      Fixtures de navegador para os testes
   services/
     demoApi.ts      Serviços assíncronos, regras e persistência local
     nativeApp.ts    Estados e autorização de retomada simulados

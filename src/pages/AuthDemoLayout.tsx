@@ -1,5 +1,5 @@
 import type { ReactNode } from "react";
-import { FileCheck2, Leaf, ArrowLeft } from "lucide-react";
+import { FileCheck2, Leaf, ArrowLeft, ArrowRight } from "lucide-react";
 import { Link } from "react-router-dom";
 import "../styles/login.css";
 
@@ -28,10 +28,10 @@ export default function AuthDemoLayout({ children }: { children: ReactNode }) {
           <div className="auth-story-note">
             <FileCheck2 size={25} />
             <div>
-              <strong>Explore com dados fictícios.</strong>
+              <strong>Mais tempo para ensinar.</strong>
               <p>
-                Você pode experimentar o cadastro e personalizar o perfil desta
-                demonstração.
+                Organize suas atividades e acompanhe a aprendizagem em um só
+                lugar.
               </p>
             </div>
           </div>
@@ -45,10 +45,27 @@ export default function AuthDemoLayout({ children }: { children: ReactNode }) {
           <Link to="/login" className="auth-back">
             <ArrowLeft size={16} /> Voltar para entrar
           </Link>
-          <span className="badge green">DEMONSTRAÇÃO INTERATIVA</span>
           {children}
         </div>
       </section>
     </main>
+  );
+}
+
+export function AuthUnavailable({
+  title,
+  description,
+}: {
+  title: string;
+  description: string;
+}) {
+  return (
+    <AuthDemoLayout>
+      <h2>{title}</h2>
+      <p className="muted">{description}</p>
+      <Link to="/login" className="button primary login-submit">
+        Voltar para entrar <ArrowRight size={18} />
+      </Link>
+    </AuthDemoLayout>
   );
 }

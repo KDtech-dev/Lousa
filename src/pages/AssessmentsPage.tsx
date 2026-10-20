@@ -10,7 +10,7 @@ import {
   Search,
 } from "lucide-react";
 import ContentDialog from "../components/ContentDialog";
-import { demoApi } from "../services/demoApi";
+import { teacherGateway } from "../services/teacherGateway";
 import type { Assessment } from "../types";
 import "../styles/content.css";
 
@@ -29,11 +29,14 @@ export default function AssessmentsPage() {
   const [busy, setBusy] = useState<string | null>(null);
   const refresh = useCallback(async () => {
     try {
-      setAssessments(await demoApi.listAssessments());
-    } catch {
+      setAssessments(await teacherGateway.listActivities());
+    } catch (error) {
       setNotice({
         type: "error",
-        text: "Não foi possível carregar as avaliações. Tente novamente.",
+        text:
+          error instanceof Error
+            ? error.message
+            : "Não foi possível carregar as avaliações. Tente novamente.",
       });
     } finally {
       setLoading(false);
@@ -61,7 +64,7 @@ export default function AssessmentsPage() {
     setBusy(id);
     setNotice(null);
     try {
-      await demoApi.duplicateAssessment(id);
+      await teacherGateway.duplicateActivity(id);
       await refresh();
       setNotice({
         type: "success",
@@ -85,7 +88,7 @@ export default function AssessmentsPage() {
     setBusy(archiveTarget.id);
     setNotice(null);
     try {
-      await demoApi.archiveAssessment(archiveTarget.id);
+      await teacherGateway.archiveActivity(archiveTarget.id);
       await refresh();
       setArchiveTarget(null);
       setNotice({

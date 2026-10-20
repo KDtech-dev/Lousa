@@ -1,5 +1,6 @@
 import { Monitor, RotateCcw } from "lucide-react";
 import { nativeAppStates } from "../services/nativeApp";
+import { isTestToolsEnabled } from "../services/teacherGateway";
 import type { NativeAppState } from "../types";
 
 export default function NativeAppControls({
@@ -15,6 +16,7 @@ export default function NativeAppControls({
   onResume?: () => void;
   busy?: boolean;
 }) {
+  if (!isTestToolsEnabled) return null;
   const current = nativeAppStates.find((state) => state.value === value)!;
   return (
     <section className="native-simulation">

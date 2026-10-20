@@ -3,6 +3,7 @@ import {
   Suspense,
   lazy,
   useLayoutEffect,
+  useState,
   type ReactNode,
 } from "react";
 import {
@@ -14,11 +15,18 @@ import {
   createBrowserRouter,
   createRoutesFromElements,
   useLocation,
+  useNavigate,
 } from "react-router-dom";
 import { ArrowLeft, FileQuestion } from "lucide-react";
 import TeacherLayout from "./components/TeacherLayout";
 import PublicLayout from "./components/PublicLayout";
 import { Loading } from "./components/Feedback";
+import {
+  IntegrationError,
+  consumePendingLogout,
+  isDemoMode,
+  teacherGateway,
+} from "./services/teacherGateway";
 
 const DashboardPage = lazy(() => import("./pages/DashboardPage"));
 const LoginPage = lazy(() => import("./pages/LoginPage"));
@@ -33,14 +41,68 @@ const AccountPage = lazy(() => import("./pages/AccountPage"));
 const ParticipatePage = lazy(() => import("./pages/ParticipatePage"));
 const StudentPage = lazy(() => import("./pages/StudentPage"));
 
-function DemoTeacherAccess() {
-  let loggedIn = false;
-  try {
-    loggedIn = localStorage.getItem("ao.teacher.session") === "demo";
-  } catch {
-    /* Login apresentará o problema de armazenamento. */
-  }
-  return loggedIn ? <Outlet /> : <Navigate to="/login" replace />;
+function TeacherAccess() {
+  const location = useLocation();
+  const [state, setState] = useState<"checking" | "allowed" | "denied">(
+    "checking",
+  );
+  const [authError, setAuthError] = useState("");
+  useLayoutEffect(() => {
+    setState("checking");
+    setAuthError("");
+    let alive = true;
+    teacherGateway
+      .verifyTeacherSession()
+      .then((teacher) => {
+        if (alive) setState(teacher ? "allowed" : "denied");
+      })
+      .catch((error) => {
+        if (alive) {
+          setState("denied");
+          if (error instanceof IntegrationError) setAuthError(error.message);
+          else setAuthError("Não foi possível validar a sessão do professor.");
+        }
+      });
+    return () => {
+      alive = false;
+    };
+  }, [location.pathname]);
+  if (state === "checking") return <Loading label="Verificando sessão…" />;
+  return state === "allowed" ? (
+    <Outlet />
+  ) : (
+    <Navigate
+      to="/login"
+      replace
+      state={{ from: location.pathname, authError }}
+    />
+  );
+}
+
+function IntegrationPending({ feature }: { feature: string }) {
+  return (
+    <section className="card student-unavailable">
+      <FileQuestion size={32} />
+      <span className="badge amber">INDISPONÍVEL</span>
+      <h1>{feature} está indisponível no momento.</h1>
+      <p>
+        Não foi possível acessar esta área agora. Tente novamente mais tarde.
+      </p>
+      <Link className="button primary" to="/">
+        Voltar ao painel
+      </Link>
+    </section>
+  );
+}
+
+function featurePage(
+  element: ReactNode,
+  feature: string,
+  isPublic = false,
+) {
+  if (isDemoMode) return page(element);
+  const pending = <IntegrationPending feature={feature} />;
+  return page(isPublic ? <PublicLayout>{pending}</PublicLayout> : pending);
 }
 class AppBoundary extends Component<
   { children: ReactNode },
@@ -57,8 +119,7 @@ class AppBoundary extends Component<
           <FileQuestion size={32} />
           <h1>Precisamos tentar novamente.</h1>
           <p>
-            Não foi possível carregar esta página. Seus dados já salvos
-            permanecem neste navegador.
+            Não foi possível carregar esta página. Tente novamente.
           </p>
           <button
             className="button primary"
@@ -83,17 +144,46 @@ function page(element: ReactNode) {
 
 function RootLayout() {
   const location = useLocation();
+  const navigate = useNavigate();
+  const [logoutError, setLogoutError] = useState("");
   useLayoutEffect(() => {
+    const state = location.state as { logout?: boolean } | null;
     if (location.pathname !== "/login") return;
-    try {
-      localStorage.removeItem("ao.teacher.session");
-    } catch {
-      /* A tela de entrada informa problemas no armazenamento. */
+    const logoutWasRequested = consumePendingLogout();
+    if (isDemoMode) {
+      try {
+        localStorage.removeItem("ao.teacher.session");
+      } catch {
+        setLogoutError("O navegador não permitiu encerrar a sessão local.");
+      }
+      return;
     }
-  }, [location.pathname]);
+    if (!state?.logout && !logoutWasRequested) return;
+    let alive = true;
+    setLogoutError("");
+    teacherGateway.logout().catch((error: unknown) => {
+      if (!alive) return;
+      setLogoutError(
+        error instanceof Error
+          ? error.message
+          : "Não foi possível encerrar a sessão no servidor.",
+      );
+      navigate("/login", { replace: true, state: { logoutError: true } });
+    });
+    return () => {
+      alive = false;
+    };
+  }, [location.key, location.pathname, location.state, navigate]);
   return (
     <AppBoundary>
-      <Outlet />
+      <>
+        {logoutError && (
+          <div className="notice error" role="alert">
+            {logoutError}
+          </div>
+        )}
+        <Outlet />
+      </>
     </AppBoundary>
   );
 }
@@ -102,11 +192,23 @@ const router = createBrowserRouter(
   createRoutesFromElements(
     <Route element={<RootLayout />}>
       <Route path="/login" element={page(<LoginPage />)} />
-      <Route path="/cadastro" element={page(<SignupPage />)} />
-      <Route path="/recuperar-acesso" element={page(<RecoverAccessPage />)} />
-      <Route path="/participar" element={page(<ParticipatePage />)} />
-      <Route path="/p/:codigo" element={page(<StudentPage />)} />
-      <Route element={<DemoTeacherAccess />}>
+      <Route
+        path="/cadastro"
+        element={featurePage(<SignupPage />, "Cadastro de perfil", true)}
+      />
+      <Route
+        path="/recuperar-acesso"
+        element={featurePage(<RecoverAccessPage />, "Recuperação de acesso", true)}
+      />
+      <Route
+        path="/participar"
+        element={featurePage(<ParticipatePage />, "Área do aluno", true)}
+      />
+      <Route
+        path="/p/:codigo"
+        element={featurePage(<StudentPage />, "Área do aluno", true)}
+      />
+      <Route element={<TeacherAccess />}>
         <Route element={<TeacherLayout />}>
           <Route index element={page(<DashboardPage />)} />
           <Route path="avaliacoes" element={page(<AssessmentsPage />)} />
@@ -118,10 +220,22 @@ const router = createBrowserRouter(
             path="avaliacoes/:id"
             element={page(<AssessmentEditorPage />)}
           />
-          <Route path="materiais" element={page(<MaterialsPage />)} />
-          <Route path="aplicacoes" element={page(<ApplicationsPage />)} />
-          <Route path="resultados" element={page(<ResultsPage />)} />
-          <Route path="conta" element={page(<AccountPage />)} />
+          <Route
+            path="materiais"
+            element={featurePage(<MaterialsPage />, "Materiais")}
+          />
+          <Route
+            path="aplicacoes"
+            element={featurePage(<ApplicationsPage />, "Aplicações e turmas")}
+          />
+          <Route
+            path="resultados"
+            element={featurePage(<ResultsPage />, "Correção e resultados")}
+          />
+          <Route
+            path="conta"
+            element={featurePage(<AccountPage />, "Conta")}
+          />
         </Route>
       </Route>
       <Route

@@ -466,7 +466,7 @@ export default function ResultsPage() {
             <p>
               {detailError ||
                 loadError ||
-                "Não encontramos esta participação nos dados de demonstração."}
+                "Não encontramos a participação informada."}
             </p>
             <button
               className="button secondary"
@@ -947,9 +947,7 @@ export default function ResultsPage() {
                       <th>Situação</th>
                       <th>Horário</th>
                       <th>Pontuação</th>
-                      <th>
-                        <span className="mg-sr-only">Ações</span>
-                      </th>
+                      <th scope="col" aria-label="Ações" />
                     </tr>
                   </thead>
                   <tbody>

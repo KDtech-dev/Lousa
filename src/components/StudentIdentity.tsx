@@ -8,6 +8,7 @@ import {
 } from "lucide-react";
 import { Link } from "react-router-dom";
 import { demoApi } from "../services/demoApi";
+import { isTestToolsEnabled } from "../services/teacherGateway";
 import { messageOf } from "../services/format";
 import { ErrorNotice } from "./Feedback";
 import type { PublicApplication } from "../types";
@@ -85,6 +86,12 @@ export default function StudentIdentity({
           ? "Esta atividade exige um e-mail autorizado pelo professor."
           : "Seu nome será usado para identificar esta participação."}
       </p>
+      {application.accessMode === "email" && !isTestToolsEnabled ? (
+        <div className="notice warning" role="status">
+          A verificação de e-mail não está disponível no momento. Entre em
+          contato com o professor para obter outro acesso.
+        </div>
+      ) : (
       <form onSubmit={identify} noValidate>
         <label className="field">
           Seu nome
@@ -170,6 +177,7 @@ export default function StudentIdentity({
           <ArrowRight size={17} />
         </button>
       </form>
+      )}
       <Link className="identity-back" to="/participar">
         <ArrowLeft size={14} /> Usar outro código
       </Link>

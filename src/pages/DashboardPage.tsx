@@ -15,45 +15,23 @@ import {
   Sparkles,
   Users,
 } from "lucide-react";
-import { demoApi } from "../services/demoApi";
 import {
   formatDate,
   formatDateTime,
-  formatPoints,
   messageOf,
 } from "../services/format";
 import { ErrorNotice, Loading } from "../components/Feedback";
-import type {
-  Application,
-  Assessment,
-  Attempt,
-  Material,
-  Teacher,
-} from "../types";
+import { teacherGateway, type TeacherDashboardData } from "../services/teacherGateway";
 import "../styles/dashboard.css";
 
-interface DashboardData {
-  teacher: Teacher;
-  assessments: Assessment[];
-  applications: Application[];
-  attempts: Attempt[];
-  materials: Material[];
-}
 export default function DashboardPage() {
-  const [data, setData] = useState<DashboardData | null>(null);
+  const [data, setData] = useState<TeacherDashboardData | null>(null);
   const [error, setError] = useState("");
   function load() {
     setError("");
-    Promise.all([
-      demoApi.getTeacher(),
-      demoApi.listAssessments(),
-      demoApi.listApplications(),
-      demoApi.listAttempts(),
-      demoApi.listMaterials(),
-    ])
-      .then(([teacher, assessments, applications, attempts, materials]) =>
-        setData({ teacher, assessments, applications, attempts, materials }),
-      )
+    teacherGateway
+      .getDashboard()
+      .then(setData)
       .catch((e) => setError(messageOf(e)));
   }
   useEffect(load, []);

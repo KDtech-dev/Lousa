@@ -38,8 +38,7 @@ export default function PublicLayout({
         {children}
       </main>
       <footer className="public-footer">
-        Lousa
-        <span>Demonstração · dados salvos neste navegador</span>
+        Lousa <span>Feito para aprender.</span>
       </footer>
     </div>
   );

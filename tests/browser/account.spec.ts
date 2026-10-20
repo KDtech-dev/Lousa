@@ -17,7 +17,7 @@ test("cadastro demonstrativo valida campos, salva só o perfil e permite editar 
     .getByLabel("Nome completo", { exact: true })
     .fill("Clara Oliveira");
   await page
-    .getByLabel("E-mail demonstrativo", { exact: true })
+    .getByLabel("E-mail", { exact: true })
     .fill("clara@exemplo.com");
   await page.getByLabel("Disciplina", { exact: true }).fill("Matemática");
   await page.getByLabel("Instituição", { exact: true }).fill("Escola Exemplo");
@@ -111,6 +111,9 @@ test("cadastro demonstrativo valida campos, salva só o perfil e permite editar 
   );
   await page.getByRole("button", { name: "Sair da demonstração" }).click();
   await expect(page).toHaveURL(/\/login$/);
+  await expect(
+    page.getByRole("button", { name: "Entrar na demonstração" }),
+  ).toBeVisible();
   expect(
     await page.evaluate(() => localStorage.getItem("ao.teacher.session")),
   ).toBeNull();
