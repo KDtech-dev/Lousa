@@ -80,7 +80,7 @@ function MaterialForm({
       nextErrors.file = "Este arquivo está vazio. Selecione outro arquivo.";
     if (file && file.size > 25 * 1024 * 1024)
       nextErrors.file =
-        "Selecione um arquivo de até 25 MB para esta demonstração.";
+        "Selecione um arquivo de até 25 MB.";
     setErrors(nextErrors);
     if (Object.keys(nextErrors).length) return;
     setSaving(true);
@@ -288,15 +288,15 @@ function MaterialForm({
           <small id="material-file-help" className="muted">
             {initial?.type === "file" && !file
               ? "O arquivo atual será mantido se você não escolher outro."
-              : "O arquivo ficará salvo neste navegador usando IndexedDB."}
+              : "O arquivo ficará disponível somente neste dispositivo."}
           </small>
         </div>
       )}
       <div className="notice info">
         <HardDrive size={17} />
         <span>
-          Esta é uma demonstração. Arquivos são salvos neste navegador e não são
-          enviados a um servidor.
+          Os arquivos ficam salvos neste dispositivo e não ficam disponíveis em
+          outros aparelhos.
         </span>
       </div>
       {errors.submit && (
@@ -546,9 +546,7 @@ export default function MaterialsPage() {
                   <th>Disciplina</th>
                   <th>Associado a</th>
                   <th>Adicionado em</th>
-                  <th>
-                    <span className="sr-only">Ações</span>
-                  </th>
+                  <th scope="col" aria-label="Ações" />
                 </tr>
               </thead>
               <tbody>
@@ -667,7 +665,7 @@ export default function MaterialsPage() {
             na biblioteca
           </span>
           <span>
-            <HardDrive size={14} /> Armazenamento local de demonstração
+            <HardDrive size={14} /> Arquivos neste dispositivo
           </span>
         </div>
       </section>

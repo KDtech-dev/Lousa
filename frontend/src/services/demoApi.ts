@@ -45,6 +45,7 @@ interface StoredState {
 }
 export interface DemoApiOptions {
   storage?: DemoStorage;
+  storageKey?: string;
   now?: () => number;
   initialDatabase?: DemoDatabase;
   latency?: number;
@@ -90,6 +91,22 @@ function defaultStorage(): DemoStorage {
     };
   }
   return memoryStorage;
+}
+
+function createEmptyDatabase(): DemoDatabase {
+  return {
+    teacher: {
+      id: "teacher-local",
+      name: "Professor",
+      email: "",
+      subject: "",
+      institution: "",
+    },
+    assessments: [],
+    materials: [],
+    applications: [],
+    attempts: [],
+  };
 }
 
 function materialDatabase(): Promise<IDBDatabase | null> {
@@ -280,6 +297,7 @@ export function sanitizeAttempt(attempt: Attempt): PublicAttempt {
 
 export function createDemoApi(options: DemoApiOptions = {}) {
   const storage = options.storage ?? defaultStorage();
+  const stateStorageKey = options.storageKey ?? storageKey;
   const now = options.now ?? Date.now;
   const latency = options.latency ?? 40;
   const pause = () =>
@@ -288,7 +306,7 @@ export function createDemoApi(options: DemoApiOptions = {}) {
       : Promise.resolve();
   const persist = (state: StoredState) => {
     try {
-      storage.setItem(storageKey, JSON.stringify(state));
+      storage.setItem(stateStorageKey, JSON.stringify(state));
     } catch {
       fail(
         "LOCAL_STORAGE_FAILED",
@@ -299,7 +317,7 @@ export function createDemoApi(options: DemoApiOptions = {}) {
   const load = (): StoredState => {
     let raw: string | null = null;
     try {
-      raw = storage.getItem(storageKey);
+      raw = storage.getItem(stateStorageKey);
     } catch {
       fail(
         "LOCAL_STORAGE_FAILED",
@@ -473,7 +491,7 @@ export function createDemoApi(options: DemoApiOptions = {}) {
       await pause();
       const fields = ["name", "email", "subject", "institution"] as const;
       if (fields.some((field) => typeof input[field] !== "string"))
-        fail("INVALID_PROFILE", "Preencha os dados do perfil demonstrativo.");
+        fail("INVALID_PROFILE", "Preencha os dados do perfil.");
       const profile = {
         name: input.name.trim(),
         email: normalizeEmail(input.email),
@@ -483,7 +501,7 @@ export function createDemoApi(options: DemoApiOptions = {}) {
       if (!profile.name || profile.name.length > 120)
         fail("INVALID_PROFILE", "Informe um nome com até 120 caracteres.");
       if (!emailPattern.test(profile.email) || profile.email.length > 254)
-        fail("INVALID_EMAIL", "Informe um e-mail fictício válido.");
+        fail("INVALID_EMAIL", "Informe um e-mail válido.");
       if (!profile.subject || profile.subject.length > 120)
         fail(
           "INVALID_PROFILE",
@@ -504,7 +522,7 @@ export function createDemoApi(options: DemoApiOptions = {}) {
       if (!emailPattern.test(normalizeEmail(email)))
         fail(
           "INVALID_EMAIL",
-          "Informe um e-mail válido para entrar na demonstração.",
+          "Informe um e-mail válido para continuar.",
         );
       return clone(readState().database.teacher);
     },
@@ -861,12 +879,12 @@ export function createDemoApi(options: DemoApiOptions = {}) {
       if (!challenge || challenge.used || challenge.expiresAt <= now())
         fail(
           "VERIFICATION_EXPIRED",
-          "O código de demonstração expirou. Solicite um novo código.",
+          "O código expirou. Solicite um novo código.",
         );
       if (challenge.code !== code.trim())
         fail(
           "INVALID_VERIFICATION_CODE",
-          "O código informado está incorreto. Confira o código exibido na demonstração.",
+          "O código informado está incorreto. Confira e tente novamente.",
         );
       challenge.token = newId("verified");
       persist(state);
@@ -917,7 +935,7 @@ export function createDemoApi(options: DemoApiOptions = {}) {
         )
           fail(
             "EMAIL_NOT_VERIFIED",
-            "Verifique seu e-mail com o código de demonstração antes de iniciar.",
+            "Verifique seu e-mail antes de iniciar a atividade.",
           );
         challenge.used = true;
       }
@@ -981,7 +999,7 @@ export function createDemoApi(options: DemoApiOptions = {}) {
       if (simulateFailure)
         fail(
           "SYNC_FAILED",
-          "Falha na sincronização simulada. Suas respostas locais continuam neste navegador; tente sincronizar novamente.",
+          "Não foi possível enviar as respostas. Elas continuam salvas neste dispositivo; tente novamente.",
         );
       const application = applicationById(state, attempt.applicationId);
       const updated: Attempt["answers"] = {};
@@ -1037,7 +1055,16 @@ export function createDemoApi(options: DemoApiOptions = {}) {
   };
 }
 
-export const demoApi = createDemoApi();
+const runtimeDatabase =
+  import.meta.env.VITE_LOUSA_TEST_TOOLS === "true"
+    ? createSeedDatabase()
+    : createEmptyDatabase();
+
+const testToolsEnabled = import.meta.env.VITE_LOUSA_TEST_TOOLS === "true";
+export const demoApi = createDemoApi({
+  initialDatabase: runtimeDatabase,
+  storageKey: testToolsEnabled ? undefined : "lousa.local.v2",
+});
 
 export const {
   getTeacher,

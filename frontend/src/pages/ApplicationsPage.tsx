@@ -21,6 +21,10 @@ import {
 } from "lucide-react";
 import ManagementDialog from "../components/ManagementDialog";
 import {
+  isDemoMode,
+  isTestToolsEnabled,
+} from "../services/teacherGateway";
+import {
   closeApplication,
   listApplications,
   listAssessments,
@@ -210,7 +214,9 @@ export default function ApplicationsPage() {
       setCreating(false);
       setNotice({
         kind: "success",
-        text: `Aplicação publicada. Compartilhe o código ${application.code} ou copie o link.`,
+        text: isDemoMode
+          ? `Aplicação salva neste dispositivo. O acesso dos alunos fica restrito a este navegador. Código: ${application.code}.`
+          : `Aplicação publicada. Compartilhe o código ${application.code} ou copie o link.`,
       });
     } catch (error) {
       setFormError(errorMessage(error));
@@ -286,6 +292,13 @@ export default function ApplicationsPage() {
           <Plus size={18} /> Nova aplicação
         </button>
       </div>
+
+      {isDemoMode && !isTestToolsEnabled && (
+        <div className="notice info local-data-note" role="note">
+          As atividades e respostas desta área ficam disponíveis somente neste
+          dispositivo.
+        </div>
+      )}
 
       {notice && (
         <div
@@ -480,7 +493,9 @@ export default function ApplicationsPage() {
                         <span>
                           <Monitor size={15} />
                           {application.appRequired
-                            ? "Aplicativo obrigatório · simulado"
+                            ? isTestToolsEnabled
+                              ? "Aplicativo obrigatório · simulado"
+                              : "Aplicativo indisponível"
                             : "Navegador comum"}
                         </span>
                       </div>
@@ -554,7 +569,11 @@ export default function ApplicationsPage() {
       {creating && (
         <ManagementDialog
           title="Nova aplicação"
-          subtitle="Configure o acesso e compartilhe a avaliação com seus alunos."
+          subtitle={
+            isDemoMode && !isTestToolsEnabled
+              ? "Configure o período. O acesso ficará disponível somente neste dispositivo."
+              : "Configure o acesso e compartilhe a avaliação com seus alunos."
+          }
           onClose={() => {
             if (!saving) setCreating(false);
           }}
@@ -716,24 +735,26 @@ export default function ApplicationsPage() {
                     <small>Quem tiver o link ou código pode participar.</small>
                   </span>
                 </label>
-                <label
-                  className={`mg-choice ${form.accessMode === "email" ? "mg-choice-selected" : ""}`}
-                >
-                  <input
-                    type="radio"
-                    name="accessMode"
-                    value="email"
-                    checked={form.accessMode === "email"}
-                    onChange={() => update("accessMode", "email")}
-                  />
-                  <Mail size={20} />
-                  <span>
-                    <strong>E-mails autorizados</strong>
-                    <small>
-                      Acesso com verificação demonstrativa de e-mail.
-                    </small>
-                  </span>
-                </label>
+                {isTestToolsEnabled && (
+                  <label
+                    className={`mg-choice ${form.accessMode === "email" ? "mg-choice-selected" : ""}`}
+                  >
+                    <input
+                      type="radio"
+                      name="accessMode"
+                      value="email"
+                      checked={form.accessMode === "email"}
+                      onChange={() => update("accessMode", "email")}
+                    />
+                    <Mail size={20} />
+                    <span>
+                      <strong>E-mails autorizados</strong>
+                      <small>
+                        Acesso com verificação demonstrativa de e-mail.
+                      </small>
+                    </span>
+                  </label>
+                )}
               </fieldset>
               {form.accessMode === "email" && (
                 <label className="field mg-emails-field">
@@ -758,37 +779,39 @@ export default function ApplicationsPage() {
                 </label>
               )}
             </section>
-            <section className="mg-form-section">
-              <h3>
-                <span>3</span>Ambiente da avaliação
-              </h3>
-              <label className="mg-app-choice">
-                <span className="mg-app-choice-icon">
-                  <Monitor size={23} />
-                </span>
-                <span>
-                  <strong>Exigir aplicativo para começar</strong>
-                  <small>Opção independente da identificação do aluno.</small>
-                </span>
-                <input
-                  type="checkbox"
-                  checked={form.appRequired}
-                  onChange={(event) =>
-                    update("appRequired", event.target.checked)
-                  }
-                />
-              </label>
-              {form.appRequired && (
-                <div className="notice info mg-app-notice">
-                  <strong>Integração demonstrativa</strong>
-                  <p>
-                    A preparação usará estados simulados do aplicativo. Windows
-                    11 e Linux Mint são sistemas previstos; o aplicativo nativo
-                    será desenvolvido em outra etapa.
-                  </p>
-                </div>
-              )}
-            </section>
+            {isTestToolsEnabled && (
+              <section className="mg-form-section">
+                <h3>
+                  <span>3</span>Ambiente da avaliação
+                </h3>
+                <label className="mg-app-choice">
+                  <span className="mg-app-choice-icon">
+                    <Monitor size={23} />
+                  </span>
+                  <span>
+                    <strong>Exigir aplicativo para começar</strong>
+                    <small>Opção independente da identificação do aluno.</small>
+                  </span>
+                  <input
+                    type="checkbox"
+                    checked={form.appRequired}
+                    onChange={(event) =>
+                      update("appRequired", event.target.checked)
+                    }
+                  />
+                </label>
+                {form.appRequired && (
+                  <div className="notice info mg-app-notice">
+                    <strong>Integração demonstrativa</strong>
+                    <p>
+                      A preparação usará estados simulados do aplicativo. Windows
+                      11 e Linux Mint são sistemas previstos; o aplicativo nativo
+                      será desenvolvido em outra etapa.
+                    </p>
+                  </div>
+                )}
+              </section>
+            )}
             <footer className="mg-dialog-actions">
               <button
                 type="button"
@@ -808,7 +831,13 @@ export default function ApplicationsPage() {
                 ) : (
                   <Send size={17} />
                 )}
-                {saving ? "Publicando…" : "Publicar aplicação"}
+                {saving
+                  ? isDemoMode && !isTestToolsEnabled
+                    ? "Salvando…"
+                    : "Publicando…"
+                  : isDemoMode && !isTestToolsEnabled
+                    ? "Salvar aplicação neste dispositivo"
+                    : "Publicar aplicação"}
               </button>
             </footer>
           </form>
@@ -878,7 +907,9 @@ export default function ApplicationsPage() {
               <p>
                 {inspecting.durationMinutes} minutos ·{" "}
                 {inspecting.appRequired
-                  ? "Aplicativo obrigatório (simulado)"
+                  ? isTestToolsEnabled
+                    ? "Aplicativo obrigatório (simulado)"
+                    : "Aplicativo indisponível"
                   : "Navegador comum"}
               </p>
             </div>

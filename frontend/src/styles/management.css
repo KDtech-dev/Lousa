@@ -1,5 +1,6 @@
 .mg-page {
   min-width: 0;
+  overflow-x: clip;
 }
 .mg-sr-only {
   position: absolute;
@@ -1020,82 +1021,6 @@ p.mg-field-help {
   font-size: 11px;
   margin-bottom: 0;
 }
-.mg-feature-list {
-  list-style: none;
-  margin: 0;
-  padding: 0;
-  display: flex;
-  flex-direction: column;
-  gap: 15px;
-}
-.mg-feature-list li {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  color: #5f6c55;
-  font-size: 12px;
-}
-.mg-feature-list svg {
-  color: #5e6b57;
-}
-.mg-subscription-info {
-  display: flex;
-  align-items: flex-start;
-  gap: 10px;
-  background: #f6f9f1;
-  border: 1px solid #e7efdf;
-  border-radius: 8px;
-  padding: 16px;
-  margin-top: 27px;
-  color: #5e6b57;
-}
-.mg-subscription-info > svg {
-  margin-top: 2px;
-}
-.mg-subscription-info p {
-  margin-bottom: 0;
-  font-size: 11px;
-  line-height: 1.8;
-}
-.mg-subscription-info strong {
-  display: block;
-  color: #596c43;
-  font-size: 11px;
-  margin-bottom: 4px;
-}
-.mg-subscription-info span {
-  display: block;
-}
-.mg-demo-info-card {
-  padding: 24px 25px;
-}
-.mg-demo-info-card h2 {
-  display: flex;
-  align-items: center;
-  gap: 9px;
-  font-size: 15px;
-  margin-bottom: 13px;
-}
-.mg-demo-info-card h2 svg {
-  color: #596d52;
-}
-.mg-demo-info-card > p {
-  font-size: 12px;
-  color: var(--muted);
-  margin-bottom: 19px;
-}
-.mg-demo-info-item {
-  display: flex;
-  align-items: flex-start;
-  gap: 10px;
-  color: #5e6b57;
-  font-size: 11px;
-  line-height: 1.8;
-  margin-top: 13px;
-}
-.mg-demo-info-item svg {
-  margin-top: 3px;
-}
 .mg-spin {
   animation: mg-spin 1s linear infinite;
 }
@@ -1368,8 +1293,7 @@ p.mg-field-help {
     grid-template-columns: 1fr;
   }
   .mg-profile-card,
-  .mg-subscription-card,
-  .mg-demo-info-card {
+  .mg-subscription-card {
     padding: 21px 18px;
   }
   .mg-profile-identity {
@@ -1393,10 +1317,6 @@ p.mg-field-help {
   }
   .mg-subscription-header h3 {
     font-size: 16px;
-  }
-  .mg-feature-list li {
-    font-size: 11px;
-    line-height: 1.6;
   }
   .mg-app-choice {
     padding: 15px 12px;

@@ -4,7 +4,8 @@ import { ArrowRight } from "lucide-react";
 import { demoApi } from "../services/demoApi";
 import { messageOf } from "../services/format";
 import { ErrorNotice } from "../components/Feedback";
-import AuthDemoLayout from "./AuthDemoLayout";
+import AuthDemoLayout, { AuthUnavailable } from "./AuthDemoLayout";
+import { isTestToolsEnabled } from "../services/teacherGateway";
 import {
   focusProfileError,
   profileFields,
@@ -67,6 +68,14 @@ export default function SignupPage() {
       setBusy(false);
     }
   }
+
+  if (!isTestToolsEnabled)
+    return (
+      <AuthUnavailable
+        title="Cadastro indisponível."
+        description="Não é possível criar uma conta agora. Tente novamente mais tarde."
+      />
+    );
 
   return (
     <AuthDemoLayout>

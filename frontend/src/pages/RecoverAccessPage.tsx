@@ -1,7 +1,8 @@
 import { useEffect, useRef, useState } from "react";
 import { Link } from "react-router-dom";
 import { ArrowRight, CheckCircle2, Mail } from "lucide-react";
-import AuthDemoLayout from "./AuthDemoLayout";
+import AuthDemoLayout, { AuthUnavailable } from "./AuthDemoLayout";
+import { isTestToolsEnabled } from "../services/teacherGateway";
 
 export default function RecoverAccessPage() {
   const [email, setEmail] = useState("");
@@ -68,6 +69,14 @@ export default function RecoverAccessPage() {
     setPasswordConfirmation("");
     setResetStep("completed");
   }
+
+  if (!isTestToolsEnabled)
+    return (
+      <AuthUnavailable
+        title="Recuperação de acesso indisponível."
+        description="Não é possível recuperar o acesso agora. Tente novamente mais tarde."
+      />
+    );
 
   return (
     <AuthDemoLayout>
