@@ -5,7 +5,7 @@ export type ProfileErrors = Partial<Record<keyof ProfileInput, string>>;
 
 export const profileFields = [
   { name: "name", label: "Nome completo", maxLength: 120 },
-  { name: "email", label: "E-mail demonstrativo", maxLength: 254 },
+  { name: "email", label: "E-mail", maxLength: 254 },
   { name: "subject", label: "Disciplina", maxLength: 120 },
   { name: "institution", label: "Instituição", maxLength: 200 },
 ] as const;
@@ -22,7 +22,7 @@ export function validateProfile(input: ProfileInput): ProfileErrors {
     input.email.trim() &&
     !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(input.email.trim())
   )
-    errors.email = "Informe um e-mail fictício válido.";
+    errors.email = "Informe um e-mail válido.";
   return errors;
 }
 

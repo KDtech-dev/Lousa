@@ -135,7 +135,7 @@ test("descartar rascunho preserva a avaliação oficial e a cópia publicada", a
     .getByRole("button", { name: "Salvar avaliação", exact: true })
     .click();
   await expect(page.getByRole("status")).toContainText(
-    "Avaliação salva neste navegador",
+    "Atividade salva neste dispositivo",
   );
   const titles = await page.evaluate((key) => {
     const database = JSON.parse(localStorage.getItem(key)!).database;
@@ -186,7 +186,7 @@ test("erro local mantém o conteúdo e protege a saída; salvar continua possív
     .getByRole("button", { name: "Salvar avaliação", exact: true })
     .click();
   await expect(page.getByRole("status")).toContainText(
-    "Avaliação salva neste navegador",
+    "Atividade salva neste dispositivo",
   );
   await page.reload();
   await expect(page.getByLabel("Título")).toHaveValue(
@@ -233,7 +233,7 @@ test("rascunho de versão anterior exige escolha antes de recuperar", async ({
     .getByRole("button", { name: "Salvar avaliação", exact: true })
     .click();
   await expect(page.getByRole("status")).toContainText(
-    "Avaliação salva neste navegador",
+    "Atividade salva neste dispositivo",
   );
   await page.reload();
   await expect(page.getByLabel("Título")).toHaveValue("Rascunho anterior");
@@ -303,7 +303,7 @@ test("conteúdo fica protegido durante salvamento para evitar sobrescrita", asyn
     page.getByRole("button", { name: "Adicionar questão", exact: true }),
   ).toBeDisabled();
   await expect(page.getByRole("status")).toContainText(
-    "Avaliação salva neste navegador",
+    "Atividade salva neste dispositivo",
   );
   await expect(page.getByLabel("Título")).toBeEnabled();
   await expect(page.getByLabel("Título")).toHaveValue(

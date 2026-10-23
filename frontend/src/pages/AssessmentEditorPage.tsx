@@ -7,11 +7,14 @@ import {
   Eye,
   FileText,
   Link2,
+  LoaderCircle,
   Plus,
   Save,
+  Sparkles,
+  Upload,
   X,
 } from "lucide-react";
-import { demoApi, newId } from "../services/demoApi";
+import { newId } from "../services/demoApi";
 import ContentDialog from "../components/ContentDialog";
 import QuestionEditor from "../components/QuestionEditor";
 import UnsavedChangesDialog from "../components/UnsavedChangesDialog";
@@ -31,6 +34,12 @@ import type {
   PublicAssessment,
   Question,
 } from "../types";
+import {
+  isDemoMode,
+  isTestToolsEnabled,
+  teacherGateway,
+  type GeneratedActivity,
+} from "../services/teacherGateway";
 import "../styles/content.css";
 
 function blankQuestion(): Question {
@@ -257,6 +266,16 @@ export default function AssessmentEditorPage() {
   const draftPresent = useRef(false);
   const focusInvalid = useRef(false);
   const [materials, setMaterials] = useState<Material[]>([]);
+  const [materialsEndpointMissing, setMaterialsEndpointMissing] = useState(false);
+  const [creationMode, setCreationMode] = useState<"manual" | "prompt" | "pdf">("manual");
+  const [activityPrompt, setActivityPrompt] = useState("");
+  const [questionCount, setQuestionCount] = useState(5);
+  const [materialFile, setMaterialFile] = useState<File | null>(null);
+  const [generating, setGenerating] = useState(false);
+  const [generationResult, setGenerationResult] =
+    useState<GeneratedActivity["source"] | null>(null);
+  const generationLock = useRef(false);
+  const materialInput = useRef<HTMLInputElement>(null);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [loadError, setLoadError] = useState("");
@@ -289,10 +308,14 @@ export default function AssessmentEditorPage() {
     setNotice(null);
     setErrors({});
     setQuestionFields({});
-    Promise.all([demoApi.listAssessments(), demoApi.listMaterials()])
+    Promise.all([
+      editing ? teacherGateway.listActivities() : Promise.resolve([]),
+      teacherGateway.listMaterials(),
+    ])
       .then(([all, available]) => {
         if (!alive) return;
-        setMaterials(available);
+        setMaterials(available ?? []);
+        setMaterialsEndpointMissing(available === null);
         const assessment = editing
           ? all.find((item) => item.id === id)
           : blankAssessment();
@@ -329,13 +352,19 @@ export default function AssessmentEditorPage() {
         if (justCreated && !draftRecovered)
           setNotice({
             type: "success",
-            text: "Avaliação criada e salva neste navegador. Ela já pode ser usada em uma aplicação.",
+            text: isDemoMode
+              ? isTestToolsEnabled
+                ? "Avaliação criada e salva neste navegador. Ela já pode ser usada em uma aplicação."
+                : "Atividade salva neste dispositivo. Ela pode ser usada em uma aplicação neste mesmo dispositivo."
+              : "Atividade criada e salva.",
           });
       })
-      .catch(() => {
+      .catch((error: unknown) => {
         if (alive)
           setLoadError(
-            "Não foi possível carregar o editor. Tente recarregar a página.",
+            error instanceof Error
+              ? error.message
+              : "Não foi possível carregar o editor. Tente recarregar a página.",
           );
       })
       .finally(() => {
@@ -435,8 +464,68 @@ export default function AssessmentEditorPage() {
     ];
     patch({ questions });
   }
+  async function generate(mode: "prompt" | "pdf") {
+    if (generationLock.current || generating) return;
+    if (mode === "prompt" && !activityPrompt.trim()) {
+      setNotice({
+        type: "error",
+        text: "Descreva a atividade antes de solicitar a geração.",
+      });
+      return;
+    }
+    if (mode === "pdf" && !materialFile) {
+      setNotice({ type: "error", text: "Selecione um arquivo PDF." });
+      return;
+    }
+    generationLock.current = true;
+    setGenerating(true);
+    setNotice(null);
+    try {
+      const result =
+        mode === "prompt"
+          ? await teacherGateway.generateActivityFromPrompt({
+              prompt: activityPrompt.trim(),
+              subject: draft.subject,
+              questionCount,
+            })
+          : await teacherGateway.generateActivityFromMaterial(
+              materialFile!,
+              { subject: draft.subject, questionCount },
+            );
+      setDraft({
+        ...result.activity,
+        id: draft.id,
+        subject: result.activity.subject || draft.subject,
+        createdAt: draft.createdAt,
+        updatedAt: new Date().toISOString(),
+        archived: false,
+        materialIds: [],
+      });
+      setGenerationResult(result.source);
+      setErrors({});
+      setQuestionFields({});
+      setNotice({
+        type: "success",
+        text:
+          result.source === "demo"
+            ? "Resultado de demonstração: conteúdo de exemplo, sem uso de inteligência artificial. Revise e edite as questões antes de salvar."
+            : "Atividade gerada. Revise e edite as questões antes de salvar.",
+      });
+    } catch (error) {
+      setNotice({
+        type: "error",
+        text:
+          error instanceof Error
+            ? error.message
+            : "Não foi possível gerar a atividade. Tente novamente.",
+      });
+    } finally {
+      generationLock.current = false;
+      setGenerating(false);
+    }
+  }
   async function save() {
-    if (saving || conflictingDraft) return;
+    if (saving || generating || conflictingDraft) return;
     const validation = validate(draft);
     setErrors(validation.errors);
     setQuestionFields(validation.questionFields);
@@ -468,7 +557,7 @@ export default function AssessmentEditorPage() {
       })),
     };
     try {
-      const saved = await demoApi.saveAssessment(next);
+      const saved = await teacherGateway.saveActivity(next, !editing);
       setBaseline(saved);
       setDraft(saved);
       setRestored(false);
@@ -487,7 +576,9 @@ export default function AssessmentEditorPage() {
       else
         setNotice({
           type: "success",
-          text: "Avaliação salva neste navegador. As aplicações já publicadas preservam sua versão original.",
+          text: isDemoMode
+            ? "Atividade salva neste dispositivo. As aplicações já publicadas preservam sua versão original."
+            : "Atividade salva.",
         });
     } catch (error) {
       setNotice({
@@ -556,14 +647,14 @@ export default function AssessmentEditorPage() {
         <div className="content-heading-actions">
           <button
             className="button secondary"
-            disabled={saving || !!conflictingDraft}
+            disabled={saving || generating || !!conflictingDraft}
             onClick={() => setPreview(true)}
           >
             <Eye size={17} /> Visualizar como aluno
           </button>
           <button
             className="button primary"
-            disabled={saving || !!conflictingDraft}
+            disabled={saving || generating || !!conflictingDraft}
             onClick={() => void save()}
           >
             <Save size={17} />
@@ -584,6 +675,177 @@ export default function AssessmentEditorPage() {
         >
           {notice.text}
         </div>
+      )}
+      {!editing && (
+        <section className="card creation-method-card" aria-label="Modo de criação">
+          <div className="content-section-title">
+            <span className="section-icon"><Sparkles size={19} /></span>
+            <div>
+              <h2>Como deseja criar?</h2>
+              <p className="muted">Todo conteúdo gerado pode ser revisado antes de salvar.</p>
+            </div>
+          </div>
+          <div className="content-tabs creation-method-tabs" role="group" aria-label="Modo de criação">
+            <button
+              type="button"
+              className={creationMode === "manual" ? "active" : ""}
+              aria-pressed={creationMode === "manual"}
+              disabled={generating}
+              onClick={() => setCreationMode("manual")}
+            >Criação manual</button>
+            <button
+              type="button"
+              className={creationMode === "prompt" ? "active" : ""}
+              aria-pressed={creationMode === "prompt"}
+              disabled={generating}
+              onClick={() => setCreationMode("prompt")}
+            >Criar com prompt</button>
+            <button
+              type="button"
+              className={creationMode === "pdf" ? "active" : ""}
+              aria-pressed={creationMode === "pdf"}
+              disabled={generating}
+              onClick={() => setCreationMode("pdf")}
+            >Criar com PDF</button>
+          </div>
+          {creationMode === "prompt" && (
+            <div className="creation-generation-form">
+              <label className="field">
+                <span>Descreva a atividade</span>
+                <textarea
+                  rows={4}
+                  maxLength={4000}
+                  value={activityPrompt}
+                  disabled={generating}
+                  placeholder="Ex.: Crie uma atividade de revisão sobre ecossistemas para o 7º ano, com situações do cotidiano."
+                  onChange={(event) => setActivityPrompt(event.target.value)}
+                />
+              </label>
+              <div className="form-grid">
+                <label className="field">
+                  <span>Quantidade de questões</span>
+                  <input
+                    type="number"
+                    min={1}
+                    max={10}
+                    value={questionCount}
+                    disabled={generating}
+                    onChange={(event) =>
+                      setQuestionCount(
+                        Math.max(1, Math.min(10, Number(event.target.value) || 1)),
+                      )
+                    }
+                  />
+                </label>
+                <label className="field">
+                  <span>Disciplina para a atividade <span className="required">*</span></span>
+                  <input
+                    value={draft.subject}
+                    disabled={generating}
+                    maxLength={80}
+                    placeholder="Ex.: Ciências"
+                    onChange={(event) => patch({ subject: event.target.value })}
+                  />
+                </label>
+              </div>
+              <button
+                type="button"
+                className="button primary"
+                disabled={generating || saving}
+                onClick={() => void generate("prompt")}
+              >
+                {generating ? <LoaderCircle size={17} className="spin" /> : <Sparkles size={17} />}
+                {generating ? "Gerando…" : "Gerar atividade"}
+              </button>
+            </div>
+          )}
+          {creationMode === "pdf" && (
+            <div className="creation-generation-form">
+              <p className="muted">
+                Envie um PDF de referência. O arquivo será enviado junto ao pedido de geração e não será adicionado à biblioteca.
+              </p>
+              <label className="field">
+                <span>Material em PDF</span>
+                <input
+                  ref={materialInput}
+                  type="file"
+                  accept="application/pdf,.pdf"
+                  disabled={generating}
+                  onChange={(event) => {
+                    setMaterialFile(event.target.files?.[0] ?? null);
+                    setNotice(null);
+                  }}
+                />
+              </label>
+              {materialFile && (
+                <div className="notice info selected-material-file">
+                  <span><FileText size={17} /> {materialFile.name} · {(materialFile.size / (1024 * 1024)).toFixed(1)} MB</span>
+                  <button
+                    type="button"
+                    className="icon-button"
+                    aria-label="Remover arquivo PDF"
+                    disabled={generating}
+                    onClick={() => {
+                      setMaterialFile(null);
+                      if (materialInput.current) materialInput.current.value = "";
+                    }}
+                  ><X size={17} /></button>
+                </div>
+              )}
+              <div className="form-grid">
+                <label className="field">
+                  <span>Quantidade de questões</span>
+                  <input
+                    type="number"
+                    min={1}
+                    max={10}
+                    value={questionCount}
+                    disabled={generating}
+                    onChange={(event) =>
+                      setQuestionCount(
+                        Math.max(1, Math.min(10, Number(event.target.value) || 1)),
+                      )
+                    }
+                  />
+                </label>
+                <label className="field">
+                  <span>Disciplina para a atividade <span className="required">*</span></span>
+                  <input
+                    value={draft.subject}
+                    disabled={generating}
+                    maxLength={80}
+                    placeholder="Ex.: Ciências"
+                    onChange={(event) => patch({ subject: event.target.value })}
+                  />
+                </label>
+              </div>
+              <small className="field-help">
+                Selecione um arquivo PDF.
+              </small>
+              <button
+                type="button"
+                className="button primary"
+                disabled={generating || saving || !materialFile}
+                onClick={() => void generate("pdf")}
+              >
+                {generating ? <LoaderCircle size={17} className="spin" /> : <Upload size={17} />}
+                {generating ? "Enviando e gerando…" : "Enviar PDF e gerar atividade"}
+              </button>
+            </div>
+          )}
+          {generationResult && (
+            <div className="notice info generation-review-note">
+              <strong>Revise o resultado no editor abaixo.</strong>
+              <span>
+                {generationResult === "demo"
+                  ? isTestToolsEnabled
+                    ? " Este conteúdo foi criado pelo mock de demonstração."
+                    : " A atividade ainda não foi salva nem publicada."
+                  : " A atividade ainda não foi salva nem publicada."}
+              </span>
+            </div>
+          )}
+        </section>
       )}
       {conflictingDraft && baseline && (
         <div className="notice info editor-draft-notice">
@@ -646,7 +908,7 @@ export default function AssessmentEditorPage() {
       )}
       <fieldset
         className="editor-fields"
-        disabled={saving || !!conflictingDraft}
+        disabled={saving || generating || !!conflictingDraft}
         aria-label="Conteúdo da avaliação"
       >
         <div className="assessment-editor-layout">
@@ -826,7 +1088,11 @@ export default function AssessmentEditorPage() {
                 <h2>Materiais de apoio</h2>
               </div>
               <p className="muted">Selecione o que o aluno poderá consultar.</p>
-              {materials.length === 0 ? (
+              {materialsEndpointMissing ? (
+                <p className="muted">
+                  A associação de materiais está temporariamente indisponível.
+                </p>
+              ) : materials.length === 0 ? (
                 <p className="muted">Você ainda não cadastrou materiais.</p>
               ) : (
                 materials.map((material) => (
@@ -848,7 +1114,7 @@ export default function AssessmentEditorPage() {
                       <strong>{material.title}</strong>
                       <small>
                         {material.type === "file"
-                          ? "Arquivo · salvo neste navegador"
+                          ? "Arquivo neste dispositivo"
                           : "Link"}{" "}
                         · {material.subject}
                       </small>
@@ -861,7 +1127,9 @@ export default function AssessmentEditorPage() {
               </Link>
             </section>
             <p className="editor-local-note muted">
-              Demonstração: as alterações são salvas neste navegador.
+              {isTestToolsEnabled
+                ? "As alterações são salvas neste dispositivo."
+                : "As alterações ficam salvas como rascunho neste dispositivo."}
             </p>
           </aside>
         </div>

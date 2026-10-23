@@ -47,7 +47,7 @@ export default function PublicMaterials({
                 <strong>{material.title}</strong>
                 <small>
                   {material.type === "file"
-                    ? "Arquivo local da demonstração"
+                    ? "Arquivo neste dispositivo"
                     : "Link de apoio"}
                 </small>
               </span>

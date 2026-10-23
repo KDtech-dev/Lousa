@@ -4,6 +4,7 @@ import type { PublicApplication, PublicAttempt } from "../types";
 import { demoApi } from "../services/demoApi";
 import { formatDateTime, formatPoints, messageOf } from "../services/format";
 import { ErrorNotice } from "./Feedback";
+import { isTestToolsEnabled } from "../services/teacherGateway";
 
 export default function AttemptReceipt({
   attempt,
@@ -58,7 +59,13 @@ export default function AttemptReceipt({
         )}
       </span>
       <span className="eyebrow">
-        {abandoned ? "PARTICIPAÇÃO ENCERRADA" : "ENTREGA CONFIRMADA"}
+        {abandoned
+          ? "PARTICIPAÇÃO ENCERRADA"
+          : expired
+            ? "PRAZO ENCERRADO"
+            : isTestToolsEnabled
+              ? "ENTREGA CONFIRMADA"
+              : "RESPOSTAS SALVAS NESTE DISPOSITIVO"}
       </span>
       <h1>
         {abandoned
@@ -71,8 +78,12 @@ export default function AttemptReceipt({
         {abandoned
           ? "As respostas registradas foram preservadas. Esta participação não pode ser retomada."
           : expired
-            ? "A participação foi finalizada automaticamente com as respostas salvas até o prazo, inclusive os rascunhos locais válidos."
-            : "Suas respostas foram recebidas na demonstração. Agora o professor pode acompanhar e corrigir sua atividade."}
+            ? isTestToolsEnabled
+              ? "A participação foi finalizada automaticamente com as respostas salvas até o prazo, inclusive os rascunhos locais válidos."
+              : "O prazo encerrou. As respostas salvas permanecem neste dispositivo."
+            : isTestToolsEnabled
+              ? "Suas respostas foram recebidas na demonstração. Agora o professor pode acompanhar e corrigir sua atividade."
+              : "Suas respostas foram salvas neste dispositivo. O envio ao professor não está disponível no momento."}
       </p>
       <div className="receipt-data">
         <span>
@@ -94,7 +105,9 @@ export default function AttemptReceipt({
               ? "Desistência"
               : expired
                 ? "Finalizada por prazo"
-                : "Entregue"}
+                : isTestToolsEnabled
+                  ? "Entregue"
+                  : "Salva neste dispositivo"}
           </strong>
         </span>
         <span className="receipt-id">
@@ -155,16 +168,18 @@ export default function AttemptReceipt({
           Acessar outra atividade
         </a>
       </div>
-      <details className="receipt-demo-new">
-        <summary>Demonstração: testar outra participação</summary>
-        <p>
-          A participação atual continuará registrada. Uma nova tentativa terá um
-          identificador próprio, mesmo usando o mesmo nome.
-        </p>
-        <button className="button secondary small" onClick={onNew}>
-          Preparar uma nova participação
-        </button>
-      </details>
+      {isTestToolsEnabled && (
+        <details className="receipt-demo-new">
+          <summary>Demonstração: testar outra participação</summary>
+          <p>
+            A participação atual continuará registrada. Uma nova tentativa terá um
+            identificador próprio, mesmo usando o mesmo nome.
+          </p>
+          <button className="button secondary small" onClick={onNew}>
+            Preparar uma nova participação
+          </button>
+        </details>
+      )}
     </section>
   );
 }

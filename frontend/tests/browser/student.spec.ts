@@ -311,7 +311,9 @@ test.describe("experiência pública do aluno", () => {
       .getByRole("textbox", { name: "Sua resposta", exact: true })
       .fill("Organizar a separação dos resíduos na escola.");
     await expect(
-      page.getByText("Falha na sincronização simulada.", { exact: false }),
+      page.getByText("Não foi possível enviar as respostas.", {
+        exact: false,
+      }),
     ).toBeVisible();
     expect(
       (await readAttempt(page, "BIO101")).answers["bio-q3"],

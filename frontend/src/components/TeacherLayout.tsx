@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import {
   Link,
   NavLink,
@@ -20,8 +20,13 @@ import {
   Settings2,
   X,
 } from "lucide-react";
-import { demoApi } from "../services/demoApi";
 import { initials } from "../services/format";
+import {
+  isDemoMode,
+  isTestToolsEnabled,
+  requestLogoutAfterNavigation,
+  teacherGateway,
+} from "../services/teacherGateway";
 import type { Teacher } from "../types";
 
 const menu = [
@@ -45,12 +50,14 @@ export function Brand({ compact = false }: { compact?: boolean }) {
 export default function TeacherLayout() {
   const [teacher, setTeacher] = useState<Teacher | null>(null);
   const [menuOpen, setMenuOpen] = useState(false);
+  const menuButton = useRef<HTMLButtonElement>(null);
+  const closeButton = useRef<HTMLButtonElement>(null);
   const location = useLocation();
   const navigate = useNavigate();
   useEffect(() => {
     let alive = true;
     const refreshTeacher = () => {
-      demoApi
+      teacherGateway
         .getTeacher()
         .then((value) => {
           if (alive) setTeacher(value);
@@ -67,13 +74,25 @@ export default function TeacherLayout() {
   useEffect(() => {
     setMenuOpen(false);
   }, [location.pathname]);
+  useEffect(() => {
+    if (!menuOpen) return;
+    closeButton.current?.focus();
+    function closeOnEscape(event: KeyboardEvent) {
+      if (event.key !== "Escape") return;
+      setMenuOpen(false);
+      menuButton.current?.focus();
+    }
+    window.addEventListener("keydown", closeOnEscape);
+    return () => window.removeEventListener("keydown", closeOnEscape);
+  }, [menuOpen]);
   const active = menu.find((item) =>
     item.to === "/"
       ? location.pathname === "/"
       : location.pathname.startsWith(item.to),
   );
   function logout() {
-    navigate("/login", { replace: true });
+    requestLogoutAfterNavigation();
+    navigate("/login", { replace: true, state: { logout: true } });
   }
   return (
     <div className="workspace">
@@ -87,10 +106,14 @@ export default function TeacherLayout() {
           onClick={() => setMenuOpen(false)}
         />
       )}
-      <aside className={`sidebar ${menuOpen ? "is-open" : ""}`}>
+      <aside
+        id="teacher-navigation"
+        className={`sidebar ${menuOpen ? "is-open" : ""}`}
+      >
         <div className="sidebar-brand">
           <Brand />
           <button
+            ref={closeButton}
             className="icon-button mobile-close"
             aria-label="Fechar menu"
             onClick={() => setMenuOpen(false)}
@@ -128,18 +151,17 @@ export default function TeacherLayout() {
           <Link to="/participar" className="student-access">
             Acesso do aluno <ArrowUpRight size={16} />
           </Link>
-          <div className="sidebar-version">
-            <span className="status-dot" /> Ambiente de demonstração
-          </div>
         </div>
       </aside>
       <div className="workspace-body">
         <header className="topbar">
           <div className="topbar-left">
             <button
+              ref={menuButton}
               className="icon-button mobile-menu"
               aria-label="Abrir menu"
               aria-expanded={menuOpen}
+              aria-controls="teacher-navigation"
               onClick={() => setMenuOpen(true)}
             >
               <Menu size={21} />
@@ -150,13 +172,9 @@ export default function TeacherLayout() {
             </span>
           </div>
           <div className="topbar-right">
-            <span className="demo-label">
-              <span className="status-dot" />
-              Demonstração
-            </span>
             <Link to="/conta" className="profile-link">
               <span className="avatar">
-                {initials(teacher?.name ?? "Marina Costa")}
+                {initials(teacher?.name ?? "Professor")}
               </span>
               <span className="profile-text">
                 <strong>{teacher?.name ?? "Professor"}</strong>
@@ -166,7 +184,9 @@ export default function TeacherLayout() {
             </Link>
             <button
               className="icon-button logout-button"
-              aria-label="Sair da demonstração"
+              aria-label={
+                isDemoMode && isTestToolsEnabled ? "Sair da demonstração" : "Sair"
+              }
               title="Sair"
               onClick={logout}
             >
@@ -179,7 +199,9 @@ export default function TeacherLayout() {
         </main>
         <footer className="workspace-footer">
           Lousa <span>Feito para ensinar, aprender e acompanhar.</span>
-          <span>Dados fictícios · armazenamento neste navegador</span>
+          {isDemoMode && !isTestToolsEnabled && (
+            <span>As alterações ficam salvas neste dispositivo.</span>
+          )}
         </footer>
       </div>
     </div>

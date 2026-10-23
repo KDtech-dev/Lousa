@@ -1,3 +1,15 @@
+## Lousa backend
+
+This Laravel application contains the initial Lousa API foundation. Start with the project-specific documentation:
+
+- [Backend architecture and security](docs/arquitetura-backend.md)
+- [Implemented API contract](docs/api.md)
+- [Decisions awaiting team validation](docs/decisoes-pendentes.md)
+
+The backend currently implements cookie-session login/profile/logout, teacher-owned classrooms and enrollments, and draft activities with the basic question shapes used by the existing teacher editor. Student exam delivery, publication, results, file processing and AI generation are not implemented.
+
+For local setup, use a PHP runtime compatible with every locked Composer package, install the locked dependencies, copy `.env.example` to `.env`, generate an application key, configure the intended database and frontend origins, and run `php artisan migrate` only after verifying the target database. Do not use the framework's default seeder to provision accounts. Run the backend test suite with `composer test`. The current lock selects Symfony 8 packages requiring PHP 8.4.1 or newer, although `composer.json` still declares `^8.3`; resolve that mismatch before relying on PHP 8.3 installations.
+
 <p align="center"><a href="https://laravel.com" target="_blank"><img src="https://raw.githubusercontent.com/laravel/art/master/logo-lockup/5%20SVG/2%20CMYK/1%20Full%20Color/laravel-logolockup-cmyk-red.svg" width="400" alt="Laravel Logo"></a></p>
 
 <p align="center">

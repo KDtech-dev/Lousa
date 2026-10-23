@@ -23,6 +23,7 @@ import AttemptReceipt from "../components/AttemptReceipt";
 import ConfirmDialog from "../components/ConfirmDialog";
 import { ErrorNotice, Loading } from "../components/Feedback";
 import { demoApi } from "../services/demoApi";
+import { isTestToolsEnabled } from "../services/teacherGateway";
 import { formatDateTime, formatPoints, messageOf } from "../services/format";
 import { canStart } from "../services/nativeApp";
 import {
@@ -313,7 +314,7 @@ export default function StudentPage() {
                     <h3>Orientações do professor</h3>
                     <p>
                       {application.snapshot.instructions ||
-                        "Leia os enunciados com atenção e revise antes de entregar."}
+                        "Leia os enunciados com atenção e revise suas respostas."}
                     </p>
                   </div>
                   <ul className="student-rules">
@@ -329,7 +330,9 @@ export default function StudentPage() {
                       <span>
                         Identificação por{" "}
                         {application.accessMode === "email"
-                          ? `e-mail verificado na demonstração (${identity?.email})`
+                          ? isTestToolsEnabled
+                            ? `e-mail verificado na demonstração (${identity?.email})`
+                            : `e-mail informado (${identity?.email})`
                           : "nome informado"}
                         .
                       </span>
@@ -351,8 +354,9 @@ export default function StudentPage() {
                       <li>
                         <Monitor size={16} />
                         <span>
-                          Aplicativo obrigatório nesta simulação. É necessário
-                          selecionar o estado “Pronto” para iniciar ou retomar.
+                          {isTestToolsEnabled
+                            ? "Aplicativo obrigatório nesta simulação. É necessário selecionar o estado “Pronto” para iniciar ou retomar."
+                            : "Esta atividade exige um aplicativo que não está disponível no momento. Entre em contato com o professor."}
                         </span>
                       </li>
                     )}
@@ -376,6 +380,7 @@ export default function StudentPage() {
                     disabled={
                       !accepted ||
                       busy ||
+                      (application.appRequired && !isTestToolsEnabled) ||
                       (application.appRequired && !canStart(nativeState))
                     }
                     onClick={begin}
@@ -392,11 +397,24 @@ export default function StudentPage() {
                     {session.attempt?.status === "in_progress"
                       ? "continua contando durante a preparação"
                       : "começa ao iniciar"}
-                    . Ao esgotar o prazo, as respostas salvas serão entregues
-                    automaticamente.
+                    . Ao esgotar o prazo, as respostas salvas{" "}
+                    {isTestToolsEnabled
+                      ? "serão entregues automaticamente."
+                      : "permanecem neste dispositivo."}
                   </small>
                 </section>
-                {application.appRequired ? (
+                {application.appRequired && !isTestToolsEnabled ? (
+                  <aside className="preparation-aside">
+                    <span className="student-leaf">
+                      <ShieldAlert size={28} />
+                    </span>
+                    <h3>Acesso indisponível.</h3>
+                    <p>
+                      A atividade depende de um aplicativo que não está
+                      disponível agora. Entre em contato com o professor.
+                    </p>
+                  </aside>
+                ) : application.appRequired ? (
                   <NativeAppControls
                     value={nativeState}
                     onChange={changeNativeState}
@@ -412,10 +430,13 @@ export default function StudentPage() {
                       respostas e acompanhar o que ainda falta.
                     </p>
                     <p>
-                      O salvamento distingue os dados locais da sincronização
-                      simulada.
+                      {isTestToolsEnabled
+                        ? "O salvamento distingue os dados locais da sincronização simulada."
+                        : "As respostas ficam salvas neste dispositivo."}
                     </p>
-                    <span className="badge green">Sem conta permanente</span>
+                    {!isTestToolsEnabled && (
+                      <span className="badge green">Sem conta permanente</span>
+                    )}
                   </aside>
                 )}
               </div>
@@ -444,7 +465,7 @@ export default function StudentPage() {
                   }}
                 />
                 {actionError && <ErrorNotice message={actionError} />}
-                <div className="exam-demo-controls">
+                {isTestToolsEnabled && <div className="exam-demo-controls">
                   {application.appRequired && (
                     <NativeAppControls
                       value={nativeState}
@@ -472,14 +493,16 @@ export default function StudentPage() {
                       Simular falha na sincronização
                     </label>
                   </details>
-                </div>
+                </div>}
               </>
             )}
             {confirm && (
               <ConfirmDialog
                 title={
                   confirm === "submitted"
-                    ? "Entregar sua atividade?"
+                    ? isTestToolsEnabled
+                      ? "Entregar sua atividade?"
+                      : "Encerrar atividade neste dispositivo?"
                     : "Confirmar desistência?"
                 }
                 onClose={() => {
@@ -488,7 +511,9 @@ export default function StudentPage() {
               >
                 <p className="muted">
                   {confirm === "submitted"
-                    ? "Após a entrega, as respostas desta participação não poderão ser alteradas."
+                    ? isTestToolsEnabled
+                      ? "Após a entrega, as respostas desta participação não poderão ser alteradas."
+                      : "As respostas serão salvas neste dispositivo e não poderão ser alteradas. O envio ao professor não está disponível no momento."
                     : "Sua participação será encerrada. As respostas registradas serão preservadas e você não poderá retomar esta tentativa."}
                 </p>
                 {confirm === "submitted" && unanswered > 0 && (
@@ -503,7 +528,9 @@ export default function StudentPage() {
                         .
                       </strong>
                       <br />
-                      Você pode voltar para responder ou confirmar a entrega.
+                      {isTestToolsEnabled
+                        ? "Você pode voltar para responder ou confirmar a entrega."
+                        : "Você pode voltar para responder ou salvar as respostas agora."}
                     </span>
                   </div>
                 )}
@@ -524,7 +551,9 @@ export default function StudentPage() {
                     {session.busy
                       ? "Registrando…"
                       : confirm === "submitted"
-                        ? "Confirmar entrega"
+                        ? isTestToolsEnabled
+                          ? "Confirmar entrega"
+                          : "Salvar respostas"
                         : "Confirmar desistência"}
                   </button>
                 </div>

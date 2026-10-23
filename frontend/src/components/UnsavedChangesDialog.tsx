@@ -1,5 +1,11 @@
 import type { Blocker } from "react-router-dom";
 import ContentDialog from "./ContentDialog";
+import {
+  cancelPendingLogout,
+  consumePendingLogout,
+  isDemoMode,
+  teacherGateway,
+} from "../services/teacherGateway";
 
 export default function UnsavedChangesDialog({
   blocker,
@@ -9,10 +15,18 @@ export default function UnsavedChangesDialog({
   description?: string;
 }) {
   if (blocker.state !== "blocked") return null;
+  function leave() {
+    if (isDemoMode && consumePendingLogout())
+      void teacherGateway.logout().catch(() => {});
+    blocker.proceed?.();
+  }
   return (
     <ContentDialog
       labelledBy="unsaved-changes-heading"
-      onClose={() => blocker.reset()}
+      onClose={() => {
+        cancelPendingLogout();
+        blocker.reset();
+      }}
     >
       <h2 id="unsaved-changes-heading">Sair com alterações pendentes?</h2>
       <p className="muted">{description}</p>
@@ -20,11 +34,14 @@ export default function UnsavedChangesDialog({
         <button
           className="button primary"
           autoFocus
-          onClick={() => blocker.reset()}
+          onClick={() => {
+            cancelPendingLogout();
+            blocker.reset();
+          }}
         >
           Continuar editando
         </button>
-        <button className="button secondary" onClick={() => blocker.proceed()}>
+        <button className="button secondary" onClick={leave}>
           Sair da página
         </button>
       </div>

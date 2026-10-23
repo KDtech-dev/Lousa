@@ -15,7 +15,7 @@
   --primary-dark: #164a37;
   --primary-soft: #edf5ef;
   --text: #24342b;
-  --muted: #6e7b73;
+  --muted: #5f6c64;
   --border: #e3e9e3;
   --surface: #fff;
   --bg: #f6f8f5;
@@ -178,7 +178,7 @@ textarea[aria-invalid="true"] {
   align-items: center;
   justify-content: center;
   gap: 8px;
-  min-height: 42px;
+  min-height: 44px;
   padding: 10px 17px;
   border: 1px solid transparent;
   border-radius: 7px;
@@ -225,7 +225,7 @@ textarea[aria-invalid="true"] {
 .button.small {
   font-size: 12px;
   padding: 7px 11px;
-  min-height: 34px;
+  min-height: 44px;
 }
 .icon-button {
   display: inline-flex;
@@ -234,8 +234,8 @@ textarea[aria-invalid="true"] {
   background: transparent;
   border: 0;
   border-radius: 6px;
-  width: 34px;
-  height: 34px;
+  width: 44px;
+  height: 44px;
   color: var(--muted);
 }
 .icon-button:hover {
@@ -582,15 +582,6 @@ textarea[aria-invalid="true"] {
   font-size: 12px;
   padding: 6px 13px 20px;
 }
-.sidebar-version {
-  font-size: 10px;
-  display: flex;
-  align-items: center;
-  gap: 7px;
-  color: #626962;
-  padding: 18px 12px;
-  border-top: 1px solid var(--border);
-}
 .status-dot {
   width: 5px;
   height: 5px;
@@ -632,17 +623,6 @@ textarea[aria-invalid="true"] {
 .breadcrumb strong {
   font-weight: 500;
   color: #435749;
-}
-.demo-label {
-  display: flex;
-  align-items: center;
-  gap: 7px;
-  background: #f7f8f3;
-  border: 1px solid #ebeee5;
-  border-radius: 20px;
-  padding: 6px 10px;
-  font-size: 10px;
-  color: #606b55;
 }
 .profile-link {
   display: flex;
@@ -916,9 +896,6 @@ textarea[aria-invalid="true"] {
   }
 }
 @media (max-width: 480px) {
-  .demo-label {
-    display: none;
-  }
   .topbar-right {
     gap: 10px;
   }

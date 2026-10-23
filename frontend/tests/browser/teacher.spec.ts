@@ -124,7 +124,7 @@ test("professor cria questões de três tipos, visualiza, edita, duplica e arqui
     .getByRole("button", { name: "Salvar avaliação", exact: true })
     .click();
   await expect(page.getByRole("status")).toContainText(
-    "Avaliação salva neste navegador",
+    "Atividade salva neste dispositivo",
   );
 
   await navigate(page, "Avaliações");
@@ -296,7 +296,7 @@ test("professor cadastra arquivo e link, visualiza arquivo local e associa o mat
     .getByRole("button", { name: "Salvar avaliação", exact: true })
     .click();
   await expect(page.getByRole("status")).toContainText(
-    "Avaliação salva neste navegador",
+    "Atividade salva neste dispositivo",
   );
   await navigate(page, "Materiais");
   fileRow = page
